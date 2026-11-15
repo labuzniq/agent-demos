@@ -114,6 +114,7 @@ from bridge.generated_files import GeneratedAttachment, RUN_PATTERN, generated_f
 from bridge.telemetry_http import TelemetryMiddleware
 from bridge.work_activity import ActiveWorkMiddleware, start_active_work
 from bridge.transport_ingress import NativeTransportIngressMiddleware
+from bridge.chat_ingress import ChatIngressMiddleware
 from bridge import durable_transport, event_worker
 
 
@@ -121,6 +122,7 @@ app = FastAPI(title="Autopilot Azure Container Apps bridge")
 app.add_middleware(TelemetryMiddleware)
 app.add_middleware(ActiveWorkMiddleware)
 app.add_middleware(NativeTransportIngressMiddleware)
+app.add_middleware(ChatIngressMiddleware)
 PROCESS_NONCE = uuid.uuid4().hex
 
 

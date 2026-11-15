@@ -260,6 +260,23 @@ The Teams and Microsoft 365 Copilot Work IQ servers stay configured as usual. To
 
 Nothing has to be uploaded in Microsoft 365 admin center.
 
+#### Chat front end
+
+A custom chat application can replace Teams as the Worker's front end. It signs users in with Entra and posts Activity Protocol messages to the gateway `/api/messages` with the user's access token for the Worker's blueprint scope `api://<blueprintAppId>/access_agent`. Enable admission for it and redeploy:
+
+```powershell
+uv run python -m scripts.setup_app_tfvars `
+  --state-name worker3 --autopilot-name worker3 `
+  --chat-client-ids <chatAppId> `
+  --chat-service-urls https://<chat-host>/<connector-path> --runtime-only
+uv run python -m scripts.deploy_apps_runtime `
+  --state-name worker3 --apply --auto-approve --capture
+```
+
+With `chat_client_ids` set, the gateway rejects every `/api/messages` request that does not carry a valid token: signature, tenant, issuer, audience (the blueprint), delegated scope `access_agent`, and a client application from the list. It replaces the activity sender with the user in the token, so Worker owner checks use the signed-in identity, not text typed by the caller. Replies are sent only to an activity `serviceUrl` under `chat_service_urls`; other addresses are rejected before a turn starts. Missing tenant, blueprint, or service URL settings fail closed with HTTP 503.
+
+Without `chat_client_ids` the endpoint keeps the Agent 365 and Teams behavior. A Worker bootstrapped with `--skip-messaging-channel` and reached through a chat front end must therefore set it before users are given the gateway URL. The chat application needs an Entra app registration with delegated permission to the blueprint scope `access_agent`.
+
 `deploy_apps_runtime` leaves the new Worker's tfvars active. Other Workers' `deploy_apps_runtime` runs reactivate their own; before raw `terraform` commands, run `demo_ops activate --state-name <worker>` and select the workspace it prints.
 
 ## Validation

@@ -379,7 +379,8 @@ def bootstrap(args: argparse.Namespace) -> None:
             require_no_blueprint_secrets(blueprint_id)
         print(
             "\nBootstrap complete without a messaging endpoint or Agent User package. "
-            f"Reach the Worker through the gateway /invoke API of {state_name}.",
+            f"Reach {state_name} through the gateway /invoke API or a chat front end configured with "
+            "setup_app_tfvars --chat-client-ids and --chat-service-urls.",
             flush=True,
         )
         return
