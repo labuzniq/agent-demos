@@ -1,5 +1,10 @@
+import json
+import tempfile
 import unittest
+from pathlib import Path
+from unittest import mock
 
+from scripts import worker_lifecycle
 from scripts.worker_lifecycle import (
     bootstrap_agent365_config,
     endpoint_registration_needed,
@@ -11,6 +16,7 @@ from scripts.worker_lifecycle import (
     strip_blueprint_secrets,
     validate_state_name,
     worker_display_name,
+    worker_settings_pin_arguments,
 )
 
 
@@ -50,6 +56,28 @@ class WorkerLifecycleTests(unittest.TestCase):
         del tfvars["runtime_image"]
         with self.assertRaisesRegex(ValueError, "runtime_image"):
             release_pin_arguments(tfvars)
+
+    def test_existing_worker_settings_need_no_pin_source(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = {name: root / name / "tfvars.json" for name in ("worker3", "hermes2")}
+            settings["worker3"].parent.mkdir()
+            settings["worker3"].write_text("{}", encoding="utf-8")
+            with mock.patch.object(worker_lifecycle, "runtime_app_tfvars_path", lambda _runtime, state: settings[state]):
+                self.assertIsNone(worker_settings_pin_arguments("worker3", "hermes2"))
+                self.assertIsNone(worker_settings_pin_arguments("worker3", "worker3"))
+
+    def test_new_worker_copies_pins_from_another_worker(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = {name: root / name / "tfvars.json" for name in ("worker3", "hermes2")}
+            settings["hermes2"].parent.mkdir()
+            pins = {key: f"value-{index}" for index, key in enumerate(RELEASE_PIN_FLAGS)}
+            settings["hermes2"].write_text(json.dumps(pins), encoding="utf-8")
+            with mock.patch.object(worker_lifecycle, "runtime_app_tfvars_path", lambda _runtime, state: settings[state]):
+                self.assertEqual(worker_settings_pin_arguments("worker3", "hermes2"), release_pin_arguments(pins))
+                with self.assertRaisesRegex(ValueError, "another"):
+                    worker_settings_pin_arguments("worker3", "worker3")
 
     def test_inheritance_requires_every_resource(self):
         self.assertTrue(inheritance_complete("Summary: 7 of 7 resources have inheritance"))

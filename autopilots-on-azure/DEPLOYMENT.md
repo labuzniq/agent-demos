@@ -244,6 +244,22 @@ The operator login runs Terraform and Sandbox deployment; `--admin-config-dir` r
 
 Rerunning resumes: an existing live blueprint, Worker settings, and an already registered identical endpoint are kept; a different registered endpoint stops the run. Finally upload `.local\<worker>\agent365\manifest\manifest.zip` in Microsoft 365 admin center as in step 7.
 
+When the Worker's settings already exist (for example after `setup_app_tfvars`, `build_images`, and an `--infrastructure-only` apply), step 4 keeps them and `--pins-from` is not read.
+
+### Without a Microsoft 365 channel
+
+A Worker can run without a Teams, mail, or Copilot channel, for example when users reach it through the gateway `/invoke` API or a custom chat front end. Bootstrap such a Worker with `--skip-messaging-channel`, which skips step 6 (endpoint registration and package publishing) but still checks that the blueprint has no client secrets. Pass only the licenses its scenario needs:
+
+```powershell
+uv run python -m scripts.worker_lifecycle bootstrap `
+  --state-name worker3 --pins-from hermes2 --admin-config-dir $admin --skip-messaging-channel `
+  --license-skus "AGENT_365,Office_365_w/o_Teams_Bundle_Business_Premium"
+```
+
+The Teams and Microsoft 365 Copilot Work IQ servers stay configured as usual. To drop them, remove them from `ToolingManifest.json` and set the `workiq_teams_*` and `workiq_copilot_*` Terraform variables to empty, which disables those servers in the runtime.
+
+Nothing has to be uploaded in Microsoft 365 admin center.
+
 `deploy_apps_runtime` leaves the new Worker's tfvars active. Other Workers' `deploy_apps_runtime` runs reactivate their own; before raw `terraform` commands, run `demo_ops activate --state-name <worker>` and select the workspace it prints.
 
 ## Validation
