@@ -242,6 +242,8 @@ def worker_settings(config: dict, platform: dict, infrastructure: dict, endpoint
         "COLLECTIVE_LEARNING_OPERATOR_CLIENT_ID": config.get("collective_learning_operator_client_id", ""),
         "CHAT_CLIENT_IDS": config.get("chat_client_ids", ""),
         "CHAT_SERVICE_URLS": config.get("chat_service_urls", ""),
+        "SIMULATOR_CHANNEL_CLIENT_ID": config.get("simulator_channel_client_id", ""),
+        "SIMULATOR_SERVICE_URL": config.get("simulator_url", ""),
         "USE_AGENTIC_AUTH": "true",
         "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID": config["agent365_client_id"],
         "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID": tenant,

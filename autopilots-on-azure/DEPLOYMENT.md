@@ -277,6 +277,31 @@ With `chat_client_ids` set, the gateway rejects every `/api/messages` request th
 
 Without `chat_client_ids` the endpoint keeps the Agent 365 and Teams behavior. A Worker bootstrapped with `--skip-messaging-channel` and reached through a chat front end must therefore set it before users are given the gateway URL. The chat application needs an Entra app registration with delegated permission to the blueprint scope `access_agent`.
 
+#### Chat simulator front end
+
+An Agent 365 Worker can also take the [chat simulator](chat-simulator/README.md) (Entra mode) as its chat front end and keep its Agent Identity, Agent User and Work IQ tools. The simulator delivers activities with an application token of its channel app for the Worker's Agent Identity (`<agentIdentityId>/.default`). The gateway accepts that token only for activities whose `serviceUrl` is under the configured simulator origin, and answers with an Agent Identity token for the channel app (`<channelAppId>/.default`); Entra refuses app-only tokens requested by the blueprint itself (AADSTS82001). Activities with any other `serviceUrl` keep the Agent 365 behavior.
+
+1. Point the Worker at the simulator and redeploy:
+
+   ```powershell
+   uv run python -m scripts.setup_app_tfvars `
+     --state-name worker3 --autopilot-name worker3 `
+     --simulator-channel-client-id <channelAppId> `
+     --simulator-service-url https://<simulator-host> --runtime-only
+   uv run python -m scripts.deploy_apps_runtime `
+     --state-name worker3 --apply --auto-approve --capture
+   ```
+
+2. Register the Worker in the simulator (`TSIM_AGENTS_JSON` or `TSIM_AGENTS_FILE`) with the Agent Identity ID as `clientId` and the gateway URL as the endpoint, then restart the simulator:
+
+   ```json
+   [{"name": "worker3", "displayName": "Worker3", "clientId": "<agentIdentityId>", "messagingEndpoint": "https://<gateway>/api/messages"}]
+   ```
+
+3. Send a message in the simulator and ask the Worker which identity and tools it has. Expected: `Agent User: <agent user UPN>` and the Work IQ servers.
+
+The simulator's own simulator-channel Worker is not needed for this.
+
 `deploy_apps_runtime` leaves the new Worker's tfvars active. Other Workers' `deploy_apps_runtime` runs reactivate their own; before raw `terraform` commands, run `demo_ops activate --state-name <worker>` and select the workspace it prints.
 
 ## Validation

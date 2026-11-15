@@ -46,6 +46,7 @@ from bridge.attachments import (
     process_turn_attachments,
 )
 from bridge.channel_auth import (
+    Agent365SimulatorClientFactory,
     ChannelAuthentication,
     ChannelCloudAdapter,
     ChannelServiceClientFactory,
@@ -144,6 +145,8 @@ def create_agent365_app() -> tuple[AgentApplication[TurnState], CloudAdapter]:
             channel_service_client_factory=(
                 ChannelServiceClientFactory(connection_manager)
                 if channel_authentication.mode == "standard"
+                else Agent365SimulatorClientFactory(connection_manager, channel_authentication.simulator)
+                if channel_authentication.simulator
                 else None
             ),
         )

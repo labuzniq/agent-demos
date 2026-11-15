@@ -96,6 +96,8 @@ def build_tfvars(
     worker_owner_id: str = "",
     chat_client_ids: str = "",
     chat_service_urls: str = "",
+    simulator_channel_client_id: str = "",
+    simulator_service_url: str = "",
     api_server_key: str = "",
     runtime_image: str = "",
     runtime_disk_source_image: str = "",
@@ -134,6 +136,13 @@ def build_tfvars(
         if not all(url.startswith("https://") for url in urls):
             raise ValueError("Chat service URLs must use HTTPS.")
         tfvars["chat_service_urls"] = ",".join(urls)
+    if simulator_channel_client_id:
+        tfvars["simulator_channel_client_id"] = str(uuid.UUID(simulator_channel_client_id.strip()))
+    if simulator_service_url:
+        url = simulator_service_url.strip().rstrip("/")
+        if not url.startswith("https://"):
+            raise ValueError("Simulator service URL must use HTTPS.")
+        tfvars["simulator_url"] = url
     tfvars.update(
         {
             "autopilot_name": autopilot_name,
@@ -264,6 +273,14 @@ def main() -> None:
         "--chat-service-urls", default="",
         help="Comma-separated HTTPS URLs of the chat services that receive the Worker's replies.",
     )
+    parser.add_argument(
+        "--simulator-channel-client-id", default="",
+        help="Application ID of the chat simulator channel app that may message this Agent 365 Worker.",
+    )
+    parser.add_argument(
+        "--simulator-service-url", default="",
+        help="HTTPS origin of the chat simulator that receives the Worker's replies.",
+    )
     parser.add_argument("--api-server-key", default="", help="Hermes API_SERVER_KEY. Generated when omitted.")
     parser.add_argument("--role-blueprint", default="", help="Hermes Role Blueprint name.")
     parser.add_argument("--role-blueprint-source", default="", help="Git repository URL containing the Role Blueprint.")
@@ -333,6 +350,8 @@ def main() -> None:
         worker_owner_id=args.worker_owner_id,
         chat_client_ids=args.chat_client_ids,
         chat_service_urls=args.chat_service_urls,
+        simulator_channel_client_id=args.simulator_channel_client_id,
+        simulator_service_url=args.simulator_service_url,
         runtime=runtime,
         autopilot_name=autopilot_name,
         previous=previous,
