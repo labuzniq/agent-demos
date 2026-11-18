@@ -12,6 +12,7 @@ from typing import Any
 from urllib.parse import quote, urlparse
 
 import jwt
+import requests
 from fastapi import HTTPException, Request
 from microsoft_agents.activity import Activity, ResourceResponse, load_configuration_from_env
 from microsoft_agents.hosting.core import (
@@ -206,6 +207,15 @@ class Agent365SimulatorClientFactory(RestChannelServiceClientFactory):
     async def _agent_identity_token(self) -> str:
         if self._reply_token and self._reply_token_expires > time.time() + 300:
             return self._reply_token
+        for attempt in range(3):
+            try:
+                return await self._acquire_agent_identity_token()
+            except requests.exceptions.ConnectionError:
+                # Connections to Entra get reset after the gateway sat idle; the next attempt opens a new one.
+                if attempt == 2:
+                    raise
+
+    async def _acquire_agent_identity_token(self) -> str:
         blueprint = self._connection_manager.get_default_connection()
         assertion = await blueprint.get_agentic_application_token(
             self.simulator.tenant_id, self.simulator.agent_identity_client_id,

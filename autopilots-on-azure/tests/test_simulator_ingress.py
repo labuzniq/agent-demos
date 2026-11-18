@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import jwt
+import requests
 from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi import HTTPException
 
@@ -149,6 +150,16 @@ class SimulatorIngressTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(cca.call_args.args[0], AGENT_IDENTITY)
         self.assertEqual(cca.call_args.kwargs["client_credential"], {"client_assertion": "t1"})
         blueprint.get_agentic_application_token.assert_awaited_once_with(TENANT, AGENT_IDENTITY)
+
+    async def test_reply_token_survives_a_reset_entra_connection(self):
+        blueprint = SimpleNamespace(get_agentic_application_token=AsyncMock(
+            side_effect=[requests.exceptions.ConnectionError("Connection reset by peer"), "t1"]))
+        factory = Agent365SimulatorClientFactory(
+            SimpleNamespace(get_default_connection=lambda: blueprint), self.auth.simulator)
+        msal_app = SimpleNamespace(acquire_token_for_client=lambda scopes: {"access_token": "reply", "expires_in": 3600})
+        with patch("bridge.channel_auth.ConfidentialClientApplication", return_value=msal_app):
+            self.assertEqual(await factory._agent_identity_token(), "reply")
+        self.assertEqual(blueprint.get_agentic_application_token.await_count, 2)
 
     async def test_reply_elsewhere_keeps_default_scope(self):
         factory = Agent365SimulatorClientFactory(SimpleNamespace(), self.auth.simulator)
